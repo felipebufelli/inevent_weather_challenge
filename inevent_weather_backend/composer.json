@@ -1,0 +1,19 @@
+{
+    "name": "felipebufelli/weather-backend",
+    "description": "Weather API using OpenWeatherMap",
+    "type": "project",
+    "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+    "authors": [
+        {
+            "name": "Felipe Bufelli"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.10",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
