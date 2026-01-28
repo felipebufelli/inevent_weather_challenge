@@ -27,7 +27,7 @@
 
 Este projeto foi desenvolvido como parte do desafio técnico do processo seletivo da **InEvent**. O objetivo era criar uma aplicação web que consome a API do [OpenWeatherMap](https://openweathermap.org/api) para exibir informações climáticas de forma intuitiva e visualmente atraente.
 
-A aplicação foi inspirada no design e funcionalidades do [Weather.com](https://weather.com), oferecendo uma experiência completa de consulta climática com:
+A aplicação foi construída pensando em oferecer uma experiência completa de consulta climática com:
 
 - Dashboard interativo com clima atual
 - Previsão por hora (próximas 24 horas)
@@ -341,7 +341,3 @@ GET /api/weather?city=São Paulo
 Este projeto foi desenvolvido exclusivamente para fins de avaliação técnica no processo seletivo da InEvent.
 
 ---
-
-<p align="center">
-  Desenvolvido com ❤️ para o desafio técnico InEvent
-</p>
