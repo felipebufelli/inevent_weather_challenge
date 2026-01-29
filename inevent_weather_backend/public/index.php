@@ -11,7 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // CORS headers
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 // Handle preflight requests
@@ -23,21 +23,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // Roteamento
-switch ($uri) {
-    case '/api/weather':
+switch (true) {
+    case $uri === '/api/weather':
         require __DIR__ . '/../src/Controllers/WeatherController.php';
         break;
     
-    case '/api/forecast':
+    case $uri === '/api/forecast':
         require __DIR__ . '/../src/Controllers/ForecastController.php';
         break;
     
-    case '/api/air-quality':
+    case $uri === '/api/air-quality':
         require __DIR__ . '/../src/Controllers/AirQualityController.php';
         break;
     
-    case '/api/auth/login':
+    // Auth routes: /api/auth/login, /api/auth/register, /api/auth/me
+    case preg_match('/^\/api\/auth\/\w+$/', $uri):
         require __DIR__ . '/../src/Controllers/AuthController.php';
+        break;
+    
+    // User profile routes: /api/user (GET, PUT, DELETE)
+    case $uri === '/api/user':
+        require __DIR__ . '/../src/Controllers/UserController.php';
         break;
     
     default:

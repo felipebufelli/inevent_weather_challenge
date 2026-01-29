@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import {
   getCurrentWeather,
@@ -13,13 +14,34 @@ import {
   type AirQuality
 } from '@/services/weather'
 
-const { user, logout } = useAuth()
+const router = useRouter()
+const { user, logout, deleteAccount } = useAuth()
 
 // State
 const searchCity = ref('')
-const currentCity = ref('São Paulo')
+const currentCity = ref('')
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+// Delete account modal
+const showDeleteModal = ref(false)
+const deletingAccount = ref(false)
+const deleteError = ref<string | null>(null)
+
+async function handleDeleteAccount() {
+  deletingAccount.value = true
+  deleteError.value = null
+
+  const result = await deleteAccount()
+
+  if (result.success) {
+    router.push('/login')
+  } else {
+    deleteError.value = result.message || 'Erro ao excluir conta'
+  }
+
+  deletingAccount.value = false
+}
 
 const weather = ref<CurrentWeather | null>(null)
 const forecast = ref<ForecastResponse | null>(null)
@@ -95,7 +117,10 @@ function formatDate(timestamp: number): string {
 }
 
 onMounted(() => {
-  loadWeatherData(currentCity.value)
+  // Use user's city if available, otherwise default to São Paulo
+  const city = user.value?.city || 'São Paulo'
+  currentCity.value = city
+  loadWeatherData(city)
 })
 </script>
 
@@ -139,6 +164,14 @@ onMounted(() => {
 
         <div class="user-menu">
           <span class="user-name">{{ user?.name }}</span>
+          <button class="delete-account-btn" @click="showDeleteModal = true" title="Excluir Conta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
           <button class="logout-btn" @click="logout" title="Sair">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -389,6 +422,55 @@ onMounted(() => {
     <footer class="app-footer">
       <p>Powered by <a href="https://github.com/felipebufelli" target="_blank" rel="noopener">Felipe Bufelli</a></p>
     </footer>
+
+    <!-- Delete Account Modal -->
+    <transition name="modal">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+        <div class="modal glass-card">
+          <div class="modal-header">
+            <h2>Excluir Conta</h2>
+            <button class="close-btn" @click="showDeleteModal = false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            <div class="warning-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <p class="warning-text">Tem certeza que deseja excluir sua conta?</p>
+            <p class="warning-subtext">Esta ação é irreversível e todos os seus dados serão perdidos.</p>
+
+            <transition name="fade">
+              <div v-if="deleteError" class="error-message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 8v4M12 16h.01"/>
+                </svg>
+                <span>{{ deleteError }}</span>
+              </div>
+            </transition>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" @click="showDeleteModal = false" :disabled="deletingAccount">
+              Cancelar
+            </button>
+            <button class="btn btn-danger" @click="handleDeleteAccount" :disabled="deletingAccount">
+              <span v-if="deletingAccount" class="loading-spinner-small"></span>
+              <span v-else>Excluir Minha Conta</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -524,6 +606,7 @@ onMounted(() => {
   text-transform: capitalize;
 }
 
+.delete-account-btn,
 .logout-btn {
   width: 38px;
   height: 38px;
@@ -538,12 +621,14 @@ onMounted(() => {
   transition: all var(--transition-fast);
 }
 
+.delete-account-btn:hover,
 .logout-btn:hover {
   background: rgba(229, 57, 53, 0.2);
   border-color: var(--error);
   color: var(--error);
 }
 
+.delete-account-btn svg,
 .logout-btn svg { width: 18px; height: 18px; }
 
 /* Main Content */
@@ -1061,5 +1146,194 @@ onMounted(() => {
   .details-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--spacing-lg);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  color: var(--text-light);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.close-btn:hover {
+  color: var(--text-light);
+}
+
+.close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-body {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.warning-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-md);
+  color: var(--error);
+}
+
+.warning-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.warning-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: var(--spacing-xs);
+}
+
+.warning-subtext {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.modal-body .error-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--error-light);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+  border-radius: var(--radius-sm);
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  margin-top: var(--spacing-md);
+  text-align: left;
+}
+
+.modal-body .error-message svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 12px 20px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  color: var(--text-light);
+  background: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #ff6b6b;
+}
+
+.loading-spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--text-light);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Modal Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
