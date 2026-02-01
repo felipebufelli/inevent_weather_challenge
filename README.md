@@ -40,7 +40,8 @@ A aplicação foi construída pensando em oferecer uma experiência completa de 
 ## ✨ Funcionalidades
 
 ### Autenticação
-- Login com validação de e-mail
+- Registro e login com validação de e-mail
+- Autenticação JWT (token no header `Authorization`)
 - Persistência de sessão via localStorage
 - Proteção de rotas autenticadas
 - Logout com redirecionamento
@@ -74,8 +75,10 @@ A aplicação foi construída pensando em oferecer uma experiência completa de 
 | Tecnologia | Versão | Descrição |
 |------------|--------|-----------|
 | PHP | 8.x | Linguagem server-side |
+| PostgreSQL | 16 | Banco de dados (via Docker) |
 | Guzzle HTTP | 7.10 | Cliente HTTP para consumo de APIs |
 | PHP dotenv | 5.6 | Gerenciamento de variáveis de ambiente |
+| Firebase PHP-JWT | 6.10 | Autenticação JWT |
 
 ### APIs Externas
 - [OpenWeatherMap Current Weather](https://openweathermap.org/current) - Clima atual
@@ -112,8 +115,9 @@ A aplicação segue uma arquitetura **cliente-servidor** com separação clara d
 Antes de começar, certifique-se de ter instalado:
 
 - **Node.js** >= 20.19.0 ou >= 22.12.0
-- **PHP** >= 8.0
+- **PHP** >= 8.0 (com extensão **pdo_pgsql** habilitada para PostgreSQL)
 - **Composer** (gerenciador de dependências PHP)
+- **Docker** e **Docker Compose** (para subir o banco PostgreSQL e o pgAdmin)
 - **Chave de API** do OpenWeatherMap ([obter gratuitamente](https://openweathermap.org/api))
 
 ---
@@ -127,7 +131,39 @@ git clone https://github.com/seu-usuario/inevent_weather_challenge.git
 cd inevent_weather_challenge
 ```
 
-### 2. Configuração do Backend
+### 2. Banco de dados (PostgreSQL)
+
+O projeto usa **PostgreSQL** com **Docker Compose**. Na raiz do projeto, suba os serviços:
+
+```bash
+docker compose up -d
+```
+
+Isso sobe:
+
+| Serviço   | Imagem              | Porta | Descrição                          |
+|-----------|---------------------|-------|------------------------------------|
+| PostgreSQL | postgres:16-alpine | 5433  | Banco de dados da aplicação        |
+| pgAdmin   | dpage/pgadmin4      | 8080  | Interface web para administrar o DB |
+
+**Credenciais padrão do PostgreSQL (já usadas no `.env.example`):**
+
+| Variável        | Valor           |
+|-----------------|-----------------|
+| Banco           | `inevent_weather` |
+| Usuário         | `inevent_user`  |
+| Senha           | `inevent_pass`  |
+| Host (local)    | `localhost`     |
+| Porta           | `5433`          |
+
+O script `inevent_weather_backend/database/init.sql` é executado na primeira subida do container e cria a tabela `users` e os índices necessários.
+
+**pgAdmin (opcional):** acesse **http://localhost:8080**  
+- E-mail: `admin@inevent.com`  
+- Senha: `admin123`  
+Para conectar ao PostgreSQL no pgAdmin: host `postgres` (ou `host.docker.internal` no Windows/Mac), porta `5432`, banco `inevent_weather`, usuário `inevent_user`, senha `inevent_pass`.
+
+### 3. Configuração do Backend
 
 ```bash
 # Acesse a pasta do backend
@@ -138,14 +174,35 @@ composer install
 
 # Configure as variáveis de ambiente
 cp .env.example .env
-# Edite o arquivo .env e adicione sua chave da API:
-# OPENWEATHER_API_KEY=sua_chave_aqui
+```
 
-# Inicie o servidor PHP
+Edite o arquivo `.env` e preencha:
+
+```env
+# API OpenWeatherMap (obrigatório)
+OPENWEATHER_API_KEY=sua_chave_aqui
+
+# Banco de dados (PostgreSQL) - valores padrão do Docker Compose
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=inevent_weather
+DB_USER=inevent_user
+DB_PASSWORD=inevent_pass
+
+# JWT (obrigatório para login/registro)
+JWT_SECRET=uma_chave_secreta_longa_e_aleatoria
+JWT_EXPIRATION=3600
+```
+
+**Importante:** o backend precisa do PostgreSQL em execução (via `docker compose up -d`) antes de iniciar.
+
+Inicie o servidor PHP:
+
+```bash
 php -S localhost:8000 -t public
 ```
 
-### 3. Configuração do Frontend
+### 4. Configuração do Frontend
 
 ```bash
 # Em outro terminal, acesse a pasta do frontend
@@ -162,13 +219,20 @@ cp .env.example .env
 npm run dev
 ```
 
-### 4. Acesse a aplicação
+### 5. Resumo da ordem de execução
+
+1. **Raiz do projeto:** `docker compose up -d` (PostgreSQL + pgAdmin)
+2. **Backend:** `cd inevent_weather_backend` → `composer install` → configurar `.env` → `php -S localhost:8000 -t public`
+3. **Frontend:** `cd inevent_weather_frontend` → `npm install` → `npm run dev`
+4. Acesse **http://localhost:5173** no navegador
+
+### 6. Acesse a aplicação
 
 Abra o navegador e acesse: **http://localhost:5173**
 
 #### Credenciais de Acesso
-- **E-mail**: Qualquer e-mail válido (ex: `teste@email.com`)
-- **Senha**: Mínimo 6 caracteres (ex: `123456`)
+- **Login:** use um e-mail válido e senha (mín. 6 caracteres). Na primeira vez, **registre-se** pela tela de login.
+- Exemplo: `teste@email.com` / `123456`
 
 ---
 
@@ -177,17 +241,25 @@ Abra o navegador e acesse: **http://localhost:5173**
 ```
 inevent_weather_challenge/
 │
+├── docker-compose.yml                # PostgreSQL + pgAdmin
 ├── inevent_weather_backend/          # API Backend (PHP)
+│   ├── database/
+│   │   └── init.sql                  # Script de criação das tabelas
 │   ├── public/
 │   │   └── index.php                 # Entry point e roteamento
 │   ├── src/
+│   │   ├── Config/
+│   │   │   └── Database.php          # Conexão PDO com PostgreSQL
 │   │   ├── Controllers/
-│   │   │   ├── AuthController.php    # Autenticação
+│   │   │   ├── AuthController.php    # Login e registro
+│   │   │   ├── UserController.php    # Perfil do usuário
 │   │   │   ├── WeatherController.php # Clima atual
 │   │   │   ├── ForecastController.php# Previsão 5 dias
 │   │   │   └── AirQualityController.php # Qualidade do ar
 │   │   └── Services/
-│   │       └── OpenWeatherService.php # Integração com API
+│   │       ├── OpenWeatherService.php # Integração com API
+│   │       ├── JwtService.php        # Geração/validação de JWT
+│   │       └── UserService.php       # Regras de usuário
 │   ├── .env                          # Variáveis de ambiente
 │   └── composer.json                 # Dependências PHP
 │
@@ -225,25 +297,31 @@ inevent_weather_challenge/
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
+| POST | `/api/auth/register` | Registra novo usuário |
 | POST | `/api/auth/login` | Realiza login do usuário |
+| GET | `/api/auth/me` | Retorna dados do usuário autenticado (header `Authorization: Bearer <token>`) |
 
-**Request Body:**
+**Request Body (login/register):**
 ```json
 {
   "email": "usuario@email.com",
-  "password": "senha123"
+  "password": "senha123",
+  "name": "Nome do Usuário",
+  "city": "São Paulo"
 }
 ```
+*(name e city são obrigatórios apenas no registro)*
 
-**Response:**
+**Response (login/register):**
 ```json
 {
   "success": true,
   "user": {
     "email": "usuario@email.com",
-    "name": "usuario"
+    "name": "Nome do Usuário",
+    "city": "São Paulo"
   },
-  "token": "base64_encoded_token"
+  "token": "jwt_token_aqui"
 }
 ```
 
@@ -308,14 +386,13 @@ GET /api/weather?city=São Paulo
 ### Segurança
 
 1. **Validação de E-mail**: Verificação de formato válido no backend.
-2. **Token Base64**: Simulação de autenticação (em produção, usar JWT).
-3. **Variáveis de Ambiente**: Chaves de API não expostas no código.
+2. **JWT**: Autenticação via token JWT com secret e expiração configuráveis no `.env`.
+3. **Variáveis de Ambiente**: Chaves de API e credenciais do banco não expostas no código.
 
 ---
 
 ## 🔮 Melhorias Futuras
 
-- [ ] Implementar JWT para autenticação real
 - [ ] Adicionar testes unitários e E2E
 - [ ] Cache de requisições à API do OpenWeatherMap
 - [ ] Geolocalização automática do usuário

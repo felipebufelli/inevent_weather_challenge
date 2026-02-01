@@ -94,8 +94,17 @@ export interface AirQuality {
 
 // ============ API Functions ============
 
-export async function getCurrentWeather(city: string): Promise<CurrentWeather> {
-  const response = await fetch(`${API_URL}/weather?city=${encodeURIComponent(city)}`)
+function authHeaders(token: string): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+export async function getCurrentWeather(city: string, token: string): Promise<CurrentWeather> {
+  const response = await fetch(`${API_URL}/weather?city=${encodeURIComponent(city)}`, {
+    headers: authHeaders(token),
+  })
 
   if (!response.ok) {
     const error = await response.json()
@@ -105,8 +114,10 @@ export async function getCurrentWeather(city: string): Promise<CurrentWeather> {
   return response.json()
 }
 
-export async function getForecast(city: string): Promise<ForecastResponse> {
-  const response = await fetch(`${API_URL}/forecast?city=${encodeURIComponent(city)}`)
+export async function getForecast(city: string, token: string): Promise<ForecastResponse> {
+  const response = await fetch(`${API_URL}/forecast?city=${encodeURIComponent(city)}`, {
+    headers: authHeaders(token),
+  })
 
   if (!response.ok) {
     const error = await response.json()
@@ -116,8 +127,10 @@ export async function getForecast(city: string): Promise<ForecastResponse> {
   return response.json()
 }
 
-export async function getAirQuality(lat: number, lon: number): Promise<AirQuality> {
-  const response = await fetch(`${API_URL}/air-quality?lat=${lat}&lon=${lon}`)
+export async function getAirQuality(lat: number, lon: number, token: string): Promise<AirQuality> {
+  const response = await fetch(`${API_URL}/air-quality?lat=${lat}&lon=${lon}`, {
+    headers: authHeaders(token),
+  })
 
   if (!response.ok) {
     const error = await response.json()

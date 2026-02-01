@@ -15,7 +15,7 @@ import {
 } from '@/services/weather'
 
 const router = useRouter()
-const { user, logout, deleteAccount } = useAuth()
+const { user, token, logout, deleteAccount } = useAuth()
 
 // State
 const searchCity = ref('')
@@ -73,11 +73,18 @@ async function loadWeatherData(city: string) {
   loading.value = true
   error.value = null
 
+  const authToken = token.value
+  if (!authToken) {
+    error.value = 'Sessão expirada. Faça login novamente.'
+    loading.value = false
+    return
+  }
+
   try {
     // Load all data in parallel
     const [weatherData, forecastData] = await Promise.all([
-      getCurrentWeather(city),
-      getForecast(city)
+      getCurrentWeather(city, authToken),
+      getForecast(city, authToken)
     ])
 
     weather.value = weatherData
@@ -86,7 +93,7 @@ async function loadWeatherData(city: string) {
 
     // Load air quality with coordinates
     try {
-      airQuality.value = await getAirQuality(weatherData.coord.lat, weatherData.coord.lon)
+      airQuality.value = await getAirQuality(weatherData.coord.lat, weatherData.coord.lon, authToken)
     } catch (e) {
       console.warn('Não foi possível carregar qualidade do ar')
     }

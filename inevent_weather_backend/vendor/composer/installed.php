@@ -3,7 +3,7 @@
         'name' => 'felipebufelli/weather-backend',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2a4b61cfc182ffb3db399d09539c5805edd5ce48',
+        'reference' => '10debca7c02bc54fdd38da4051864394e1aa4acd',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'felipebufelli/weather-backend' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2a4b61cfc182ffb3db399d09539c5805edd5ce48',
+            'reference' => '10debca7c02bc54fdd38da4051864394e1aa4acd',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
