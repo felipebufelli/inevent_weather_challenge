@@ -40,12 +40,13 @@ A aplicação foi construída pensando em oferecer uma experiência completa de 
 
 ## ✨ Funcionalidades
 
-### Autenticação
+### Autenticação e Autorização
 - Registro e login com validação de e-mail
-- Autenticação JWT (token no header `Authorization`)
+- Autenticação JWT (token no header `Authorization: Bearer <token>`)
+- **Todas as APIs protegidas** (clima, previsão, qualidade do ar) exigem o token; o frontend envia o header em toda requisição autenticada
 - Persistência de sessão via localStorage
-- Proteção de rotas autenticadas
-- Logout com redirecionamento
+- Proteção de rotas autenticadas (guard no Vue Router)
+- Logout com redirecionamento e limpeza do token
 
 ### Dashboard de Clima
 - **Clima Atual**: Temperatura, sensação térmica, condição climática com ícone
@@ -103,11 +104,12 @@ A aplicação segue uma arquitetura **cliente-servidor** com separação clara d
 ```
 
 ### Fluxo de Dados
-1. Usuário faz login no frontend
-2. Frontend solicita dados climáticos ao backend
-3. Backend consulta a API do OpenWeatherMap
-4. Backend processa e formata os dados
-5. Frontend renderiza as informações
+1. Usuário faz login ou registro no frontend; o backend retorna um JWT
+2. Frontend armazena o token (localStorage) e envia `Authorization: Bearer <token>` em todas as requisições às APIs protegidas
+3. Frontend solicita dados climáticos ao backend (com o token no header)
+4. Backend valida o JWT e, se válido, consulta a API do OpenWeatherMap
+5. Backend processa e formata os dados e devolve ao frontend
+6. Frontend renderiza as informações
 
 ---
 
@@ -328,6 +330,8 @@ inevent_weather_challenge/
 
 ### Clima
 
+Todos os endpoints de clima exigem o header **`Authorization: Bearer <token>`** (JWT retornado no login/registro).
+
 | Método | Endpoint | Parâmetros | Descrição |
 |--------|----------|------------|-----------|
 | GET | `/api/weather` | `city` | Retorna clima atual |
@@ -337,6 +341,7 @@ inevent_weather_challenge/
 **Exemplo - Clima Atual:**
 ```
 GET /api/weather?city=São Paulo
+Authorization: Bearer <seu_jwt_token>
 ```
 
 **Response:**
@@ -415,17 +420,25 @@ O relatório HTML de cobertura é gerado em `inevent_weather_backend/build/cover
 
 1. **PHP Puro**: Estrutura simples e direta, sem framework, focando na funcionalidade essencial.
 
-2. **Service Layer**: Separação da lógica de negócio em `OpenWeatherService` para melhor manutenibilidade.
+2. **Service Layer**: Separação da lógica de negócio em `OpenWeatherService`, `UserService` e `JwtService` para melhor manutenibilidade.
 
-3. **CORS Configurado**: Headers adequados para permitir requisições do frontend.
+3. **APIs protegidas por JWT**: Os endpoints de clima (`/api/weather`, `/api/forecast`, `/api/air-quality`) e de perfil (`/api/user`, `/api/auth/me`) validam o token no header `Authorization: Bearer <token>`; requisições sem token ou com token inválido retornam 401.
 
-4. **Tratamento de Erros**: Respostas padronizadas com códigos HTTP apropriados.
+4. **CORS Configurado**: Headers adequados para permitir requisições do frontend.
+
+5. **Tratamento de Erros**: Respostas padronizadas com códigos HTTP apropriados.
 
 ### Segurança
 
-1. **Validação de E-mail**: Verificação de formato válido no backend.
-2. **JWT**: Autenticação via token JWT com secret e expiração configuráveis no `.env`.
-3. **Variáveis de Ambiente**: Chaves de API e credenciais do banco não expostas no código.
+1. **Autorização em todas as APIs**: O frontend envia o JWT em todas as requisições às APIs protegidas (clima, previsão, qualidade do ar, perfil). O backend extrai o token do header `Authorization`, valida assinatura e expiração e rejeita acesso não autenticado.
+
+2. **JWT**: Autenticação via token JWT (HS256) com secret e expiração configuráveis no `.env` (`JWT_SECRET`, `JWT_EXPIRATION`). O token contém dados do usuário (id, email, name, city) e é usado para identificar o usuário em cada requisição.
+
+3. **Validação de E-mail**: Verificação de formato válido no backend no registro e login.
+
+4. **Senhas**: Armazenamento com hash (PHP `password_hash`/`password_verify`); senhas em texto nunca são persistidas.
+
+5. **Variáveis de Ambiente**: Chaves de API (OpenWeatherMap), credenciais do banco e secret do JWT ficam no `.env` e não são expostas no código ou no repositório.
 
 ---
 
