@@ -17,6 +17,7 @@
 - [Instalação e Execução](#-instalação-e-execução)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [API Endpoints](#-api-endpoints)
+- [Testes](#-testes)
 - [Decisões Técnicas](#-decisões-técnicas)
 - [Melhorias Futuras](#-melhorias-futuras)
 - [Autor](#-autor)
@@ -359,6 +360,43 @@ GET /api/weather?city=São Paulo
 
 ---
 
+## 🧪 Testes
+
+O projeto possui cobertura de testes unitários com **meta de 85%** (linhas, funções, branches e statements) no frontend e no backend.
+
+### Frontend (Vitest + Vue Test Utils)
+
+- **Framework:** Vitest com happy-dom
+- **Cobertura:** v8, threshold 85% (linhas, funções, branches, statements)
+- **Arquivos testados:** `src/config/api.ts`, `src/services/auth.ts`, `src/services/weather.ts`, `src/composables/useAuth.ts`, `src/router/index.spec.ts`
+
+```bash
+cd inevent_weather_frontend
+npm install   # instala vitest, @vitest/coverage-v8, @vue/test-utils, happy-dom
+npm run test           # modo watch
+npm run test:run       # execução única
+npm run test:coverage  # relatório de cobertura (deve atingir ≥85%)
+```
+
+O relatório HTML de cobertura é gerado em `inevent_weather_frontend/coverage/index.html`.
+
+### Backend (PHPUnit)
+
+- **Framework:** PHPUnit 11 com php-code-coverage (requer extensão PCOV ou Xdebug para cobertura)
+- **Arquivos testados:** `src/Services/JwtService.php`, `src/Services/OpenWeatherService.php`, `src/Services/UserService.php`
+- **Excluídos da cobertura:** Controllers (camada HTTP), `Database.php` (conexão real)
+
+```bash
+cd inevent_weather_backend
+composer install   # instala phpunit/phpunit e php-unit/php-code-coverage
+composer test              # executa os testes
+composer test:coverage     # testes + relatório de cobertura (texto e HTML)
+```
+
+O relatório HTML de cobertura é gerado em `inevent_weather_backend/build/coverage/`. Para a cobertura ser coletada, é necessário ter **PCOV** ou **Xdebug** habilitado no PHP.
+
+---
+
 ## 💡 Decisões Técnicas
 
 ### Frontend
@@ -393,7 +431,7 @@ GET /api/weather?city=São Paulo
 
 ## 🔮 Melhorias Futuras
 
-- [ ] Adicionar testes unitários e E2E
+- [ ] Testes E2E
 - [ ] Cache de requisições à API do OpenWeatherMap
 - [ ] Geolocalização automática do usuário
 - [ ] PWA com suporte offline

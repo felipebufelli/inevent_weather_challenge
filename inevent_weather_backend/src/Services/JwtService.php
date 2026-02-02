@@ -57,9 +57,15 @@ class JwtService
         return null;
     }
 
-    public function getTokenFromHeader(): ?string
+    /**
+     * @param array<string, string>|null $headers Optional headers (for testing). If null, uses getallheaders().
+     */
+    public function getTokenFromHeader(?array $headers = null): ?string
     {
-        $headers = getallheaders();
+        if ($headers === null) {
+            $raw = function_exists('getallheaders') ? getallheaders() : [];
+            $headers = is_array($raw) ? $raw : [];
+        }
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
 
         if ($authHeader && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {

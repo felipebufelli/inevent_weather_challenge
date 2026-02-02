@@ -10,11 +10,11 @@ class OpenWeatherService
     private Client $client;
     private string $apiKey;
 
-    public function __construct()
+    public function __construct(?Client $client = null)
     {
         $this->apiKey = $_ENV['OPENWEATHER_API_KEY'];
 
-        $this->client = new Client([
+        $this->client = $client ?? new Client([
             'base_uri' => 'https://api.openweathermap.org/',
             'timeout'  => 10.0,
         ]);
